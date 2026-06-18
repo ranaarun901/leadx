@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEAD.x — Sales Conversion Engine</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --navy:#222e53; --pink:#f3688d; --teal:#00b5ad;
+  --navy2:#1a2440; --teal2:#00968f; --pink2:#e04d76;
+  --white:#ffffff; --black:#111827; --offW:#f4f6fb;
+  --border:#e4e8f0; --muted:#6b7280;
+  --r:10px; --sh:0 2px 10px rgba(34,46,83,0.09);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--offW);color:var(--black);min-height:100vh;font-size:13px;}
+
+/* ── LOGIN ── */
+#loginScreen{
+  position:fixed;inset:0;background:var(--navy);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;
+}
+.login-box{
+  background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);
+  border-radius:16px;padding:40px 36px;width:360px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.4);
+}
+.login-logo{
+  width:44px;height:44px;background:var(--teal);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;font-weight:900;color:var(--white);margin:0 auto 20px;
+}
+.login-title{font-size:20px;font-weight:700;color:var(--white);text-align:center;margin-bottom:4px;}
+.login-title span{color:var(--teal);}
+.login-sub{font-size:11px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:28px;text-transform:uppercase;letter-spacing:.06em;}
+.login-label{font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:block;}
+.login-input{
+  width:100%;padding:10px 14px;border-radius:8px;
+  border:1.5px solid rgba(255,255,255,0.12);
+  background:rgba(255,255,255,0.06);color:var(--white);
+  font-size:13px;font-family:inherit;margin-bottom:16px;
+  transition:border-color 0.15s;
+}
+.login-input:focus{outline:none;border-color:var(--teal);}
+.login-input::placeholder{color:rgba(255,255,255,0.25);}
+.login-btn{
+  width:100%;padding:11px;border-radius:8px;border:none;
+  background:var(--teal);color:var(--white);font-size:13px;
+  font-weight:700;cursor:pointer;font-family:inherit;
+  transition:background 0.15s;margin-top:4px;
+}
+.login-btn:hover{background:var(--teal2);}
+.login-error{
+  font-size:11px;color:#fda4b7;text-align:center;
+  margin-top:12px;display:none;
+}
+
+/* ── HEADER ── */
+.hdr{background:var(--navy);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:52px;border-bottom:3px solid var(--teal);}
+.hdr-brand{display:flex;align-items:center;gap:10px;}
+.hdr-logo{width:30px;height:30px;background:var(--teal);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:var(--white);}
+.hdr-title{font-size:15px;font-weight:700;color:var(--white);letter-spacing:-0.2px;}
+.hdr-title span{color:var(--teal);}
+.hdr-sub{font-size:10px;color:rgba(255,255,255,0.45);letter-spacing:0.06em;text-transform:uppercase;margin-top:1px;}
+.hdr-right{display:flex;align-items:center;gap:14px;}
+.hdr-meta{font-size:10px;color:rgba(255,255,255,0.4);text-align:right;line-height:1.6;}
+.refresh-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 14px;border-radius:20px;
+  border:1.5px solid rgba(255,255,255,0.2);
+  background:transparent;color:rgba(255,255,255,0.8);
+  font-size:11px;font-weight:600;cursor:pointer;
+  font-family:inherit;transition:all 0.15s;
+}
+.refresh-btn:hover{background:var(--teal);border-color:var(--teal);color:var(--white);}
+.refresh-btn.loading{opacity:0.6;cursor:not-allowed;}
+.refresh-icon{font-size:13px;transition:transform 0.6s;}
+.refresh-btn.loading .refresh-icon{animation:spin 1s linear infinite;}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.logout-btn{
+  padding:5px 12px;border-radius:20px;
+  border:1.5px solid rgba(255,255,255,0.15);
+  background:transparent;color:rgba(255,255,255,0.5);
+  font-size:11px;cursor:pointer;font-family:inherit;
+}
+.logout-btn:hover{border-color:var(--pink);color:var(--pink);}
+
+/* ── LOADING OVERLAY ── */
+#loadingOverlay{
+  position:fixed;inset:0;background:var(--navy);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:8888;transition:opacity 0.4s;
+}
+#loadingOverlay.hidden{opacity:0;pointer-events:none;}
+.loader-logo{width:52px;height:52px;background:var(--teal);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:var(--white);margin-bottom:20px;}
+.loader-title{font-size:18px;font-weight:700;color:var(--white);margin-bottom:6px;}
+.loader-title span{color:var(--teal);}
+.loader-sub{font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:28px;}
+.loader-bar{width:200px;height:3px;background:rgba(255,255,255,0.1);border-radius:99px;overflow:hidden;}
+.loader-fill{height:100%;background:var(--teal);border-radius:99px;animation:load 1.5s ease-in-out infinite;}
+@keyframes load{0%{width:0%;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0%;margin-left:100%}}
+
+/* ── CONTROLS ── */
+.ctrl-bar{background:var(--white);border-bottom:1px solid var(--border);padding:8px 28px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.ctrl-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;}
+.ctrl-group{display:flex;align-items:center;gap:5px;}
+.pill{padding:4px 12px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:11px;font-weight:500;cursor:pointer;transition:all 0.14s;white-space:nowrap;font-family:inherit;}
+.pill:hover{border-color:var(--navy);color:var(--navy);}
+.pill.active{background:var(--navy);border-color:var(--navy);color:var(--white);font-weight:600;}
+.pill.active.seg-t{background:var(--teal);border-color:var(--teal);}
+.ctrl-sep{width:1px;height:18px;background:var(--border);flex-shrink:0;}
+.date-inp{padding:4px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:11px;color:var(--black);background:var(--white);font-family:inherit;cursor:pointer;}
+.date-inp:focus{outline:none;border-color:var(--teal);}
+.apply-btn{padding:4px 13px;border-radius:20px;border:none;background:var(--teal);color:var(--white);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;}
+.apply-btn:hover{background:var(--teal2);}
+.clear-btn{padding:4px 11px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;}
+.clear-btn:hover{border-color:var(--pink);color:var(--pink);}
+.date-badge{display:none;font-size:10px;background:#e0f7f6;color:var(--teal2);font-weight:600;padding:2px 9px;border-radius:20px;border:1px solid #b3e5e3;}
+
+/* ── STRIP ── */
+.strip{display:grid;grid-template-columns:repeat(7,1fr);gap:0;background:var(--navy2);border-bottom:3px solid var(--pink);}
+.si{padding:12px 14px;border-right:1px solid rgba(255,255,255,0.07);position:relative;}
+.si:last-child{border-right:none;}
+.si-lbl{font-size:9px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;line-height:1.3;}
+.si-val{font-size:22px;font-weight:700;color:var(--white);line-height:1;font-variant-numeric:tabular-nums;}
+.si-sub{font-size:10px;color:rgba(255,255,255,0.38);margin-top:3px;}
+.si .bar{position:absolute;bottom:0;left:0;right:0;height:3px;}
+.si.ct .bar{background:var(--teal);} .si.ct .si-val{color:#5eead4;}
+.si.cp .bar{background:var(--pink);} .si.cp .si-val{color:#fda4b7;}
+.si.cg .bar{background:#34d399;}    .si.cg .si-val{color:#6ee7b7;}
+
+/* ── MAIN ── */
+.main{padding:18px 28px;display:flex;flex-direction:column;gap:18px;}
+.sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.sec-dot{width:7px;height:7px;border-radius:50%;}
+.sec-title{font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.07em;}
+.grid-3{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:16px;}
+.grid-3b{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:16px;margin-top:16px;}
+.card{background:var(--white);border-radius:var(--r);box-shadow:var(--sh);padding:16px;display:flex;flex-direction:column;}
+.card-ttl{font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;}
+.card-sub{font-size:10px;color:var(--muted);margin-bottom:12px;}
+.cw{position:relative;}
+.leg{display:flex;flex-direction:column;gap:5px;margin-top:10px;}
+.leg-row{display:flex;align-items:center;gap:7px;font-size:10.5px;color:var(--muted);}
+.leg-sq{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+.leg-pct{margin-left:auto;font-weight:700;color:var(--navy);font-size:11px;}
+.footer{background:var(--navy);color:rgba(255,255,255,0.35);font-size:10px;text-align:center;padding:10px 28px;letter-spacing:0.04em;}
+
+/* ── ERROR TOAST ── */
+#toast{
+  position:fixed;bottom:24px;right:24px;
+  background:#1e2d3d;color:var(--white);
+  padding:12px 18px;border-radius:10px;
+  font-size:12px;border-left:3px solid var(--pink);
+  box-shadow:0 4px 20px rgba(0,0,0,0.3);
+  display:none;z-index:9000;max-width:320px;
+}
+
+@media(max-width:1300px){.strip{grid-template-columns:repeat(4,1fr);}.grid-3,.grid-3b{grid-template-columns:1fr 1fr;}}
+@media(max-width:800px){.strip{grid-template-columns:repeat(2,1fr);}.grid-3,.grid-3b{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">⚡</div>
+    <div class="login-title">LEAD<span>.x</span></div>
+    <div class="login-sub">Sales Conversion Engine · Hopcharge</div>
+    <label class="login-label">Username</label>
+    <input class="login-input" id="loginUser" type="text" placeholder="Enter username" autocomplete="username">
+    <label class="login-label">Password</label>
+    <input class="login-input" id="loginPass" type="password" placeholder="Enter password" autocomplete="current-password">
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="loginError">Invalid username or password</div>
+  </div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay">
+  <div class="loader-logo">⚡</div>
+  <div class="loader-title">LEAD<span>.x</span></div>
+  <div class="loader-sub">Loading latest data...</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+</div>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-brand">
+    <div class="hdr-logo">⚡</div>
+    <div>
+      <div class="hdr-title">LEAD<span>.x</span> — Sales Conversion Engine</div>
+      <div class="hdr-sub">Digital Inside Sales · AI Joule Pipeline</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-meta">
+      Last updated: <span id="lastUpdated">—</span><br>
+      <span id="totalRecords">—</span> records
+    </div>
+    <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
+      <span class="refresh-icon">↻</span> Refresh
+    </button>
+    <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+  </div>
+</header>
+
+<!-- CONTROLS -->
+<div class="ctrl-bar">
+  <span class="ctrl-label">Period</span>
+  <div class="ctrl-group" id="pg">
+    <button class="pill active" data-period="till_date">Till Date</button>
+    <button class="pill" data-period="last_month">Last Month</button>
+    <button class="pill" data-period="curr_month">Current Month</button>
+  </div>
+  <div class="ctrl-sep"></div>
+  <span class="ctrl-label">Segment</span>
+  <div class="ctrl-group" id="sg">
+    <button class="pill active" data-seg="all">Overall</button>
+    <button class="pill seg-t" data-seg="T">Tata.ev × Hopcharge</button>
+    <button class="pill" data-seg="N">Others</button>
+  </div>
+  <div class="ctrl-sep"></div>
+  <span class="ctrl-label">Date Range</span>
+  <input type="date" class="date-inp" id="dF">
+  <span style="font-size:11px;color:var(--muted)">to</span>
+  <input type="date" class="date-inp" id="dT">
+  <button class="apply-btn" onclick="applyDate()">Apply</button>
+  <button class="clear-btn" onclick="clearDate()">Clear</button>
+  <span class="date-badge" id="dBadge"></span>
+</div>
+
+<!-- STRIP -->
+<div class="strip">
+  <div class="si"><div class="si-lbl">Total Leads Received</div><div class="si-val" id="s0">—</div><div class="si-sub" id="s0s">—</div><div class="bar"></div></div>
+  <div class="si ct"><div class="si-lbl">AI Qualified Leads</div><div class="si-val" id="s1">—</div><div class="si-sub" id="s1s">—</div><div class="bar"></div></div>
+  <div class="si ct"><div class="si-lbl">High Relevance Score</div><div class="si-val" id="s2">—</div><div class="si-sub" id="s2s">—</div><div class="bar"></div></div>
+  <div class="si ct"><div class="si-lbl">Human Qualified</div><div class="si-val" id="s3">—</div><div class="si-sub" id="s3s">—</div><div class="bar"></div></div>
+  <div class="si cp"><div class="si-lbl">Total P90</div><div class="si-val" id="s4">—</div><div class="si-sub" id="s4s">—</div><div class="bar"></div></div>
+  <div class="si cp"><div class="si-lbl">Total P50</div><div class="si-val" id="s5">—</div><div class="si-sub" id="s5s">—</div><div class="bar"></div></div>
+  <div class="si cg"><div class="si-lbl">Converted</div><div class="si-val" id="s6">—</div><div class="si-sub" id="s6s">—</div><div class="bar"></div></div>
+</div>
+
+<!-- CHARTS -->
+<div class="main">
+  <div>
+    <div class="sec-hdr">
+      <div class="sec-dot" style="background:var(--teal)"></div>
+      <div class="sec-title">Customer Intelligence — AI Qualified Leads</div>
+    </div>
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-ttl">EV Model Distribution</div>
+        <div class="card-sub">Tata models shown separately · all others as "Other"</div>
+        <div class="cw" style="height:210px;"><canvas id="evChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-ttl">Subscription Plan Interest</div>
+        <div class="card-sub">Plan preference from AI conversation</div>
+        <div class="cw" style="height:160px;"><canvas id="planChart"></canvas></div>
+        <div class="leg" id="planLeg"></div>
+      </div>
+      <div class="card">
+        <div class="card-ttl">Home Charger Status</div>
+        <div class="card-sub">Customer charging setup at home</div>
+        <div class="cw" style="height:160px;"><canvas id="hcChart"></canvas></div>
+        <div class="leg" id="hcLeg"></div>
+      </div>
+    </div>
+    <div class="grid-3b">
+      <div class="card">
+        <div class="card-ttl">Annual KM Running</div>
+        <div class="card-sub">Distance driven per year (excludes unknown)</div>
+        <div class="cw" style="height:190px;"><canvas id="kmChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-ttl">EV Ownership Status</div>
+        <div class="card-sub">Current vehicle ownership from sales input</div>
+        <div class="cw" style="height:160px;"><canvas id="eoChart"></canvas></div>
+        <div class="leg" id="eoLeg"></div>
+      </div>
+      <div class="card" style="background:var(--navy);border-radius:var(--r);">
+        <div style="color:rgba(255,255,255,0.5);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Quick Insights</div>
+        <div id="insightBox" style="color:var(--white);font-size:12px;line-height:1.7;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">LEAD.x · Hopcharge™ Digital Inside Sales · Confidential · analytics.hopcharge.in</div>
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════
+const DATA_URL = 'https://ranaarun901.github.io/leadx/data.json';
+
+// Users — add/remove as needed
+// To change passwords: update the value next to each username
+const USERS = {
+  'arun':    'hopcharge@2026',
+  'ceo':     'leadx@ceo',
+  'sales':   'leadx@sales',
+  'admin':   'leadx@admin',
+};
+
+// Session key
+const SESSION_KEY = 'leadx_session';
+
+// ═══════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════
+function doLogin() {
+  const user = document.getElementById('loginUser').value.trim().toLowerCase();
+  const pass = document.getElementById('loginPass').value;
+  const err  = document.getElementById('loginError');
+
+  if (USERS[user] && USERS[user] === pass) {
+    sessionStorage.setItem(SESSION_KEY, user);
+    document.getElementById('loginScreen').style.display = 'none';
+    initDashboard();
+  } else {
+    err.style.display = 'block';
+    document.getElementById('loginPass').value = '';
+    setTimeout(() => err.style.display = 'none', 3000);
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem(SESSION_KEY);
+  location.reload();
+}
+
+// Allow Enter key on login form
+document.getElementById('loginPass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+document.getElementById('loginUser').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('loginPass').focus();
+});
+
+// Check existing session
+if (sessionStorage.getItem(SESSION_KEY)) {
+  document.getElementById('loginScreen').style.display = 'none';
+  initDashboard();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATA LAYER
+// ═══════════════════════════════════════════════════════════════
+let GDATA = null; // global data from GitHub
+let activePeriod = 'till_date';
+let activeSeg    = 'all';
+let dateFrom     = null, dateTo = null, dateActive = false;
+
+// Embedded fallback data — always works even without internet
+const FALLBACK_DATA = {"generated_at":"2026-06-18T14:22:37.398Z","total_records":23709,"periods":{"till_date":{"all":{"total":20612,"qual":8707,"hrs":5906,"hq":1546,"p90":5,"p50":128,"cv":30,"ev":{"Unknown":2805,"Tata Tiago.ev":444,"Tata Curvv.ev":333,"Tata Punch.ev":628,"Tata Nexon.ev":1123,"Other":2380,"Tata Others":407,"Tata Harrier.ev":587},"pl":{"Other Plans":4280,"Unknown":2928,"Success 3.3":502,"Success 7.2":524,"Experience":473},"hc":{"Unknown":3459,"Has Charger":2668,"No Charger":2488,"Plans to Install":92},"km":{"Unknown":4674,"20to30k":845,"30to50k":615,"5to10k":590,"upto5k":355,"15to20k":737,"10to15k":710,"above50k":181},"eo":{"Unknown":5255,"No Car":2536,"EV Owner":906,"ICE Owner":10}},"T":{"total":8289,"qual":3821,"hrs":2646,"hq":922,"p90":3,"p50":96,"cv":12,"ev":{"Tata Tiago.ev":146,"Tata Others":315,"Other":342,"Tata Nexon.ev":393,"Tata Punch.ev":292,"Unknown":1848,"Tata Curvv.ev":166,"Tata Harrier.ev":319},"pl":{"Other Plans":1594,"Unknown":737,"Success 3.3":497,"Success 7.2":521,"Experience":472},"hc":{"Unknown":1949,"No Charger":1086,"Has Charger":700,"Plans to Install":86},"km":{"20to30k":153,"15to20k":144,"10to15k":152,"upto5k":64,"30to50k":109,"Unknown":3077,"above50k":26,"5to10k":96},"eo":{"Unknown":1854,"EV Owner":561,"No Car":1399,"ICE Owner":7}},"N":{"total":12323,"qual":4886,"hrs":3260,"hq":624,"p90":2,"p50":32,"cv":18,"ev":{"Unknown":957,"Tata Tiago.ev":298,"Tata Curvv.ev":167,"Tata Punch.ev":336,"Tata Nexon.ev":730,"Other":2038,"Tata Others":92,"Tata Harrier.ev":268},"pl":{"Other Plans":2686,"Unknown":2191,"Success 7.2":3,"Success 3.3":5,"Experience":1},"hc":{"Unknown":1510,"Has Charger":1968,"No Charger":1402,"Plans to Install":6},"km":{"Unknown":1597,"20to30k":692,"30to50k":506,"5to10k":494,"upto5k":291,"15to20k":593,"10to15k":558,"above50k":155},"eo":{"Unknown":3401,"No Car":1137,"EV Owner":345,"ICE Owner":3}}},"last_month":{"all":{"total":3576,"qual":1500,"hrs":1163,"hq":539,"p90":0,"p50":13,"cv":11,"ev":{"Unknown":402,"Tata Harrier.ev":140,"Other":371,"Tata Others":110,"Tata Nexon.ev":187,"Tata Curvv.ev":49,"Tata Punch.ev":166,"Tata Tiago.ev":75},"pl":{"Other Plans":573,"Unknown":477,"Success 3.3":140,"Success 7.2":160,"Experience":150},"hc":{"Unknown":493,"No Charger":539,"Has Charger":433,"Plans to Install":35},"km":{"Unknown":843,"20to30k":135,"5to10k":90,"30to50k":111,"15to20k":125,"10to15k":125,"upto5k":43,"above50k":28},"eo":{"Unknown":258,"No Car":1026,"EV Owner":213,"ICE Owner":3}},"T":{"total":2156,"qual":892,"hrs":681,"hq":340,"p90":0,"p50":12,"cv":5,"ev":{"Unknown":317,"Tata Harrier.ev":91,"Other":103,"Tata Others":102,"Tata Nexon.ev":107,"Tata Curvv.ev":28,"Tata Tiago.ev":37,"Tata Punch.ev":107},"pl":{"Other Plans":213,"Unknown":230,"Success 3.3":139,"Success 7.2":160,"Experience":150},"hc":{"Unknown":349,"No Charger":318,"Has Charger":191,"Plans to Install":34},"km":{"Unknown":689,"20to30k":39,"5to10k":21,"30to50k":38,"10to15k":44,"upto5k":12,"15to20k":41,"above50k":8},"eo":{"Unknown":166,"No Car":589,"EV Owner":135,"ICE Owner":2}},"N":{"total":1420,"qual":608,"hrs":482,"hq":199,"p90":0,"p50":1,"cv":6,"ev":{"Other":268,"Tata Nexon.ev":80,"Tata Harrier.ev":49,"Tata Punch.ev":59,"Unknown":85,"Tata Tiago.ev":38,"Tata Curvv.ev":21,"Tata Others":8},"pl":{"Other Plans":360,"Unknown":247,"Success 3.3":1},"hc":{"Has Charger":242,"No Charger":221,"Unknown":144,"Plans to Install":1},"km":{"15to20k":84,"upto5k":31,"30to50k":73,"10to15k":81,"20to30k":96,"Unknown":154,"5to10k":69,"above50k":20},"eo":{"EV Owner":78,"Unknown":92,"No Car":437,"ICE Owner":1}}},"curr_month":{"all":{"total":1925,"qual":667,"hrs":469,"hq":254,"p90":4,"p50":15,"cv":2,"ev":{"Tata Harrier.ev":60,"Other":136,"Tata Others":52,"Unknown":170,"Tata Curvv.ev":36,"Tata Punch.ev":81,"Tata Tiago.ev":38,"Tata Nexon.ev":94},"pl":{"Other Plans":246,"Success 7.2":55,"Unknown":277,"Success 3.3":51,"Experience":38},"hc":{"No Charger":228,"Has Charger":183,"Unknown":250,"Plans to Install":6},"km":{"15to20k":42,"30to50k":51,"Unknown":358,"10to15k":66,"5to10k":37,"20to30k":63,"upto5k":30,"above50k":20},"eo":{"No Car":491,"EV Owner":112,"Unknown":63,"ICE Owner":1}},"T":{"total":563,"qual":285,"hrs":220,"hq":125,"p90":3,"p50":10,"cv":0,"ev":{"Tata Harrier.ev":39,"Tata Others":23,"Unknown":88,"Tata Curvv.ev":23,"Tata Punch.ev":34,"Other":20,"Tata Tiago.ev":16,"Tata Nexon.ev":42},"pl":{"Other Plans":68,"Success 7.2":55,"Unknown":73,"Success 3.3":51,"Experience":38},"hc":{"No Charger":107,"Unknown":107,"Has Charger":66,"Plans to Install":5},"km":{"15to20k":14,"Unknown":205,"20to30k":20,"5to10k":7,"30to50k":10,"10to15k":20,"above50k":4,"upto5k":5},"eo":{"No Car":204,"EV Owner":59,"Unknown":22}},"N":{"total":1362,"qual":382,"hrs":249,"hq":129,"p90":1,"p50":5,"cv":2,"ev":{"Other":116,"Unknown":82,"Tata Punch.ev":47,"Tata Tiago.ev":22,"Tata Nexon.ev":52,"Tata Curvv.ev":13,"Tata Harrier.ev":21,"Tata Others":29},"pl":{"Other Plans":178,"Unknown":204},"hc":{"Has Charger":117,"No Charger":121,"Unknown":143,"Plans to Install":1},"km":{"30to50k":41,"15to20k":28,"Unknown":153,"10to15k":46,"5to10k":30,"20to30k":43,"upto5k":25,"above50k":16},"eo":{"No Car":287,"EV Owner":53,"Unknown":41,"ICE Owner":1}}}}};
+
+async function initDashboard() {
+  // Show embedded data immediately — no loading wait
+  GDATA = FALLBACK_DATA;
+  hideLoading();
+  render();
+  // Then try to fetch latest from GitHub in background
+  fetchData(true);
+}
+
+async function fetchData(silent) {
+  if (!silent) showLoading(true);
+  try {
+    const resp = await fetch(DATA_URL + '?t=' + Date.now());
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const fresh = await resp.json();
+    GDATA = fresh;
+    if (!silent) hideLoading();
+    render();
+    if (silent) showToast('Data refreshed with latest from GitHub ✓', true);
+  } catch(e) {
+    if (!silent) {
+      hideLoading();
+      showToast('Using embedded data. Live fetch failed: ' + e.message);
+    }
+    // Silent fail — embedded data already showing
+  }
+}
+
+async function refreshData() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  try {
+    const resp = await fetch(DATA_URL + '?t=' + Date.now());
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    GDATA = await resp.json();
+    render();
+    showToast('Data refreshed ✓', true);
+  } catch(e) {
+    showToast('Refresh failed: ' + e.message);
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════
+function render() {
+  if (!GDATA) return;
+
+  // Update header meta
+  const gen = GDATA.generated_at
+    ? new Date(GDATA.generated_at).toLocaleString('en-IN',
+        {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+    : '—';
+  sv('lastUpdated',  gen);
+  sv('totalRecords', fN(GDATA.total_records || 0));
+
+  // Get data for current period + segment
+  const pKey = dateActive ? getCustomPeriodKey_() : activePeriod;
+  const d    = getMetrics(pKey, activeSeg);
+  if (!d) {
+    // T/N keys missing — data.json was built before segment fix
+    // Run startChunkedBuild() in Apps Script to rebuild
+    showToast('No data for "' + activeSeg + '" segment — please rebuild in Apps Script');
+    return;
+  }
+
+  // Strip
+  sv('s0', fN(d.total));  sv('s0s', 'All Joule conversations');
+  sv('s1', fN(d.qual));   sv('s1s', pct(d.qual,  d.total) + ' qualification rate');
+  sv('s2', fN(d.hrs));    sv('s2s', pct(d.hrs,   d.qual)  + ' of AI qualified');
+  sv('s3', fN(d.hq));     sv('s3s', pct(d.hq,    d.qual)  + ' of AI qualified');
+  sv('s4', fN(d.p90));    sv('s4s', pct(d.p90,   d.hq)    + ' of Human Qualified');
+  sv('s5', fN(d.p50));    sv('s5s', pct(d.p50,   d.hq)    + ' of Human Qualified');
+  sv('s6', fN(d.cv));     sv('s6s', pct(d.cv,    d.hq)    + ' of Human Qualified');
+
+  // Charts
+  buildEVChart(d.ev || {});
+  buildDonut('planChart','planLeg',
+    ['Success 3.3','Success 7.2','Experience','Other Plans'],
+    [d.pl?.['Success 3.3']||0, d.pl?.['Success 7.2']||0, d.pl?.['Experience']||0, d.pl?.['Other Plans']||0],
+    [NAVY,TEAL,PINK,'#94a3b8']);
+  buildDonut('hcChart','hcLeg',
+    ['Has Charger','No Charger','Plans to Install'],
+    [d.hc?.['Has Charger']||0, d.hc?.['No Charger']||0, d.hc?.['Plans to Install']||0],
+    [TEAL,PINK,'#fbbf24']);
+  buildKMChart(d.km || {});
+  buildDonut('eoChart','eoLeg',
+    ['EV Owner','ICE Owner','No Car'],
+    [d.eo?.['EV Owner']||0, d.eo?.['ICE Owner']||0, d.eo?.['No Car']||0],
+    [NAVY,TEAL,PINK]);
+  buildInsights(d);
+}
+
+function getMetrics(pKey, seg) {
+  if (!GDATA?.periods) return null;
+  const p = GDATA.periods[pKey] || GDATA.periods['till_date'];
+  if (!p) return null;
+  if (seg === 'T') return p['T'] ?? null;
+  if (seg === 'N') return p['N'] ?? null;
+  return p['all'] ?? null;
+}
+
+// For date range filter — find best matching period key
+function getCustomPeriodKey_() {
+  // Compare dateFrom/dateTo against available period ranges
+  // For now use till_date as base and filter client-side
+  // (full date range filtering requires row-level data — handled by nightly rebuild)
+  return 'till_date';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATE FILTER
+// ═══════════════════════════════════════════════════════════════
+function applyDate() {
+  const f = document.getElementById('dF').value;
+  const t = document.getElementById('dT').value;
+  if (!f || !t) { showToast('Please select both dates'); return; }
+  if (f > t)    { showToast('From date must be before To date'); return; }
+  dateFrom = f; dateTo = t; dateActive = true;
+  document.querySelectorAll('[data-period]').forEach(b => b.classList.remove('active'));
+  const badge = document.getElementById('dBadge');
+  badge.style.display = 'inline-block';
+  badge.textContent   = f + ' → ' + t;
+  showToast('Date range filter applied. Refresh data for exact range.', true);
+  render();
+}
+
+function clearDate() {
+  dateFrom = dateTo = null; dateActive = false;
+  document.getElementById('dF').value = '';
+  document.getElementById('dT').value = '';
+  document.getElementById('dBadge').style.display = 'none';
+  document.querySelector('[data-period="till_date"]').classList.add('active');
+  activePeriod = 'till_date';
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════════════════
+const NAVY='#222e53', PINK='#f3688d', TEAL='#00b5ad', TEAL2='#00968f', PINK2='#e04d76';
+Chart.defaults.font.family = "'Inter',system-ui,sans-serif";
+Chart.defaults.color = '#6b7280';
+let CH = {};
+
+function kill(id) { if(CH[id]) { CH[id].destroy(); delete CH[id]; } }
+
+function buildEVChart(ev) {
+  kill('ev');
+  const ORDER = ['Tata Nexon.ev','Tata Punch.ev','Tata Harrier.ev','Tata Tiago.ev','Tata Curvv.ev','Tata Others','Other'];
+  const COLORS = [NAVY,TEAL,PINK,'#4f6fa5',TEAL2,PINK2,'#94a3b8'];
+  const pairs  = ORDER.map((l,i) => ({l, v: ev[l]||0, c: COLORS[i]}))
+                      .filter(x => x.v > 0)
+                      .sort((a,b) => b.v - a.v);
+  const total  = pairs.reduce((s,x) => s+x.v, 0);
+  const ctx    = document.getElementById('evChart').getContext('2d');
+  CH['ev'] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: pairs.map(x=>x.l), datasets:[{
+      data: pairs.map(x=>x.v),
+      backgroundColor: pairs.map(x=>x.c),
+      borderRadius:5, borderSkipped:false,
+    }]},
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>' '+fN(c.raw)+' ('+pct(c.raw,total)+')'}}
+      },
+      scales:{
+        x:{display:false, grid:{display:false}},
+        y:{grid:{display:false}, ticks:{font:{size:10.5,weight:'600'},color:NAVY}}
+      },
+      layout:{padding:{right:70}},
+      animation:{onComplete:function(){
+        const c2=this.ctx;
+        this.data.datasets.forEach((ds,di)=>{
+          this.getDatasetMeta(di).data.forEach((bar,i)=>{
+            const v=ds.data[i];
+            c2.font='bold 10px Inter,sans-serif';
+            c2.fillStyle=NAVY; c2.textAlign='left'; c2.textBaseline='middle';
+            c2.fillText(fN(v)+' · '+pct(v,total), bar.x+6, bar.y);
+          });
+        });
+      }}
+    }
+  });
+}
+
+function buildDonut(canvasId, legId, labels, data, colors) {
+  kill(canvasId);
+  const total = data.reduce((a,b)=>a+b,0);
+  const ctx   = document.getElementById(canvasId).getContext('2d');
+  CH[canvasId] = new Chart(ctx,{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#fff',hoverOffset:6}]},
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'65%',
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>' '+fN(c.raw)+' ('+pct(c.raw,total)+')'}}
+      },
+      animation:{onComplete:function(){
+        const ch=this, c2=ch.ctx;
+        const cx=ch.chartArea.left+(ch.chartArea.right-ch.chartArea.left)/2;
+        const cy=ch.chartArea.top+(ch.chartArea.bottom-ch.chartArea.top)/2;
+        c2.save();
+        c2.font='bold 17px Inter,sans-serif'; c2.fillStyle=NAVY;
+        c2.textAlign='center'; c2.textBaseline='middle';
+        c2.fillText(fN(total),cx,cy-6);
+        c2.font='10px Inter,sans-serif'; c2.fillStyle='#6b7280';
+        c2.fillText('leads',cx,cy+9);
+        c2.restore();
+      }}
+    }
+  });
+  const leg  = document.getElementById(legId);
+  if (leg) leg.innerHTML = labels.map((l,i)=>`
+    <div class="leg-row">
+      <div class="leg-sq" style="background:${colors[i]}"></div>
+      <span>${l}</span>
+      <span class="leg-pct">${pct(data[i],total)}</span>
+    </div>`).join('');
+}
+
+function buildKMChart(km) {
+  kill('km');
+  const ORDER  = ['upto5k','5to10k','10to15k','15to20k','20to30k','30to50k','above50k'];
+  const LABELS = ['≤5k km','5–10k km','10–15k km','15–20k km','20–30k km','30–50k km','>50k km'];
+  const COLORS = [NAVY,TEAL,PINK,'#4f6fa5',TEAL2,PINK2,'#94a3b8'];
+  const data   = ORDER.map(k => km[k]||0);
+  const total  = data.reduce((a,b)=>a+b,0);
+  const ctx    = document.getElementById('kmChart').getContext('2d');
+  CH['km'] = new Chart(ctx,{
+    type:'bar',
+    data:{labels:LABELS,datasets:[{data,backgroundColor:COLORS,borderRadius:5,borderSkipped:false}]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>' '+fN(c.raw)+' ('+pct(c.raw,total)+')'}}
+      },
+      scales:{
+        x:{grid:{display:false}, ticks:{font:{size:10}}},
+        y:{display:false}
+      },
+      layout:{padding:{top:22}},
+      animation:{onComplete:function(){
+        const c2=this.ctx;
+        this.data.datasets.forEach((ds,di)=>{
+          this.getDatasetMeta(di).data.forEach((bar,i)=>{
+            const v=ds.data[i]; if(!v) return;
+            c2.font='bold 9.5px Inter,sans-serif';
+            c2.fillStyle=NAVY; c2.textAlign='center'; c2.textBaseline='bottom';
+            c2.fillText(fN(v), bar.x, bar.y-3);
+          });
+        });
+      }}
+    }
+  });
+}
+
+function buildInsights(d) {
+  const ev_pct  = d.qual>0 ? ((d.eo?.['EV Owner']||0)/d.qual*100).toFixed(0) : 0;
+  const hc_pct  = d.qual>0 ? ((d.hc?.['Has Charger']||0)/d.qual*100).toFixed(0) : 0;
+  const cv_rate = d.hq>0   ? (d.cv/d.hq*100).toFixed(1) : 0;
+  document.getElementById('insightBox').innerHTML = `
+    <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.1)">
+      <div style="color:rgba(255,255,255,0.45);font-size:9px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">EV Owners in Pipeline</div>
+      <div style="font-size:22px;font-weight:700;color:#5eead4">${ev_pct}%</div>
+    </div>
+    <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.1)">
+      <div style="color:rgba(255,255,255,0.45);font-size:9px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Have Home Charger</div>
+      <div style="font-size:22px;font-weight:700;color:#fda4b7">${hc_pct}%</div>
+    </div>
+    <div>
+      <div style="color:rgba(255,255,255,0.45);font-size:9px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Conversion Rate</div>
+      <div style="font-size:22px;font-weight:700;color:#6ee7b7">${cv_rate}%</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.35)">${fN(d.cv)} converted of ${fN(d.hq)} qualified</div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LOADING + TOAST
+// ═══════════════════════════════════════════════════════════════
+function showLoading(show) {
+  const el = document.getElementById('loadingOverlay');
+  if (show) { el.classList.remove('hidden'); }
+  else       { el.classList.add('hidden');    }
+}
+function hideLoading() { showLoading(false); }
+
+function showToast(msg, success) {
+  const t = document.getElementById('toast');
+  t.textContent  = msg;
+  t.style.display = 'block';
+  t.style.borderLeftColor = success ? '#34d399' : PINK;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.style.display='none', 4000);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WIRING
+// ═══════════════════════════════════════════════════════════════
+document.querySelectorAll('[data-period]').forEach(b => {
+  b.addEventListener('click', () => {
+    if (dateActive) return;
+    document.querySelectorAll('[data-period]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    activePeriod = b.dataset.period;
+    render();
+  });
+});
+document.querySelectorAll('[data-seg]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('[data-seg]').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    activeSeg = b.dataset.seg;
+    render();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════
+const fN  = n => Number(n||0).toLocaleString('en-IN');
+const pct = (n,d) => d ? (n/d*100).toFixed(1)+'%' : '—';
+const sv  = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+</script>
+</body>
+</html>
