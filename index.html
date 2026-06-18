@@ -579,14 +579,15 @@ function buildDonut(canvasId, legId, labels, data, colors) {
 
 function buildKMChart(km) {
   kill('km');
-  const ORDER  = ['≤5k','5–10k','10–15k','15–20k','20–30k','30–50k','>50k'];
+  const ORDER  = ['upto5k','5to10k','10to15k','15to20k','20to30k','30to50k','above50k'];
+  const LABELS = ['≤5k km','5–10k km','10–15k km','15–20k km','20–30k km','30–50k km','>50k km'];
   const COLORS = [NAVY,TEAL,PINK,'#4f6fa5',TEAL2,PINK2,'#94a3b8'];
   const data   = ORDER.map(k => km[k]||0);
   const total  = data.reduce((a,b)=>a+b,0);
   const ctx    = document.getElementById('kmChart').getContext('2d');
   CH['km'] = new Chart(ctx,{
     type:'bar',
-    data:{labels:ORDER,datasets:[{data,backgroundColor:COLORS,borderRadius:5,borderSkipped:false}]},
+    data:{labels:LABELS,datasets:[{data,backgroundColor:COLORS,borderRadius:5,borderSkipped:false}]},
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
