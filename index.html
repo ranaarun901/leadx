@@ -290,20 +290,20 @@ body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--off
   </div>
 </div>
 
-<div class="footer">LEAD.x · Hopcharge™ LEAD.x Sales Conversion Engine · Confidential · analytics.hopcharge.in</div>
+<div class="footer">LEAD.x · Hopcharge™ Digital Inside Sales · Confidential · analytics.hopcharge.in</div>
 <div id="toast"></div>
 
 <script>
 // ═══════════════════════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════════════════════
-const DATA_URL = 'https://ranaarun901.github.io/leadx/data.json';
+const DATA_URL = 'https://ranaarun901.github.io/leadx-data/data.json';
 
 // Users — add/remove as needed
 // To change passwords: update the value next to each username
 const USERS = {
   'arun':    'hopcharge@2026',
-  'user':     'password321',
+  'ceo':     'leadx@ceo',
   'sales':   'leadx@sales',
   'admin':   'leadx@admin',
 };
@@ -411,7 +411,12 @@ function render() {
   // Get data for current period + segment
   const pKey = dateActive ? getCustomPeriodKey_() : activePeriod;
   const d    = getMetrics(pKey, activeSeg);
-  if (!d) { showToast('No data for selected period'); return; }
+  if (!d) {
+    // T/N keys missing — data.json was built before segment fix
+    // Run startChunkedBuild() in Apps Script to rebuild
+    showToast('No data for "' + activeSeg + '" segment — please rebuild in Apps Script');
+    return;
+  }
 
   // Strip
   sv('s0', fN(d.total));  sv('s0s', 'All Joule conversations');
@@ -442,9 +447,11 @@ function render() {
 
 function getMetrics(pKey, seg) {
   if (!GDATA?.periods) return null;
-  // For custom date range we fall back to till_date approximation
   const p = GDATA.periods[pKey] || GDATA.periods['till_date'];
-  return p?.[seg] || p?.['all'] || null;
+  if (!p) return null;
+  if (seg === 'T') return p['T'] ?? null;
+  if (seg === 'N') return p['N'] ?? null;
+  return p['all'] ?? null;
 }
 
 // For date range filter — find best matching period key
