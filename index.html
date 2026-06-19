@@ -703,10 +703,10 @@ function renderEnrolment() {
   buildDropChart(E.dropChart);
 
   // EV Model x Plan table
-  buildEvPlanTable(E.evPlanMap || {}, metrics.total.requested);
+  buildEvPlanTable(E.evPlanMap || {}, m.requested);
 
   // Dealership x Plan table
-  buildDealerPlanTable(E.dealerPlanMap || {}, metrics.total.requested);
+  buildDealerPlanTable(E.dealerPlanMap || {}, m.requested);
 }
 
 function buildEvPlanTable(evPlanMap, grandTotal) {
