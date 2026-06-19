@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEAD.x — Sales Conversion Engine</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --navy:#222e53; --pink:#f3688d; --teal:#00b5ad;
+  --navy2:#1a2440; --teal2:#00968f; --pink2:#e04d76;
+  --white:#ffffff; --black:#111827; --offW:#f4f6fb;
+  --border:#e4e8f0; --muted:#6b7280;
+  --r:10px; --sh:0 2px 10px rgba(34,46,83,0.09);
+  --sidebar:220px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--offW);color:var(--black);min-height:100vh;font-size:13px;display:flex;}
+
+/* ── LOGIN ── */
+#loginScreen{position:fixed;inset:0;background:var(--navy);display:flex;align-items:center;justify-content:center;z-index:9999;}
+.login-box{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:40px 36px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.4);}
+.login-logo{width:44px;height:44px;background:var(--teal);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:var(--white);margin:0 auto 20px;}
+.login-title{font-size:20px;font-weight:700;color:var(--white);text-align:center;margin-bottom:4px;}
+.login-title span{color:var(--teal);}
+.login-sub{font-size:11px;color:rgba(255,255,255,0.4);text-align:center;margin-bottom:28px;text-transform:uppercase;letter-spacing:.06em;}
+.login-label{font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;display:block;}
+.login-input{width:100%;padding:10px 14px;border-radius:8px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.06);color:var(--white);font-size:13px;font-family:inherit;margin-bottom:16px;transition:border-color 0.15s;}
+.login-input:focus{outline:none;border-color:var(--teal);}
+.login-input::placeholder{color:rgba(255,255,255,0.25);}
+.login-btn{width:100%;padding:11px;border-radius:8px;border:none;background:var(--teal);color:var(--white);font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background 0.15s;margin-top:4px;}
+.login-btn:hover{background:var(--teal2);}
+.login-error{font-size:11px;color:#fda4b7;text-align:center;margin-top:12px;display:none;}
+
+/* ── LOADING ── */
+#loadingOverlay{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:8888;transition:opacity 0.4s;}
+#loadingOverlay.hidden{opacity:0;pointer-events:none;}
+.loader-logo{width:52px;height:52px;background:var(--teal);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:var(--white);margin-bottom:20px;}
+.loader-title{font-size:18px;font-weight:700;color:var(--white);margin-bottom:6px;}
+.loader-title span{color:var(--teal);}
+.loader-sub{font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:28px;}
+.loader-bar{width:200px;height:3px;background:rgba(255,255,255,0.1);border-radius:99px;overflow:hidden;}
+.loader-fill{height:100%;background:var(--teal);border-radius:99px;animation:load 1.5s ease-in-out infinite;}
+@keyframes load{0%{width:0%;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0%;margin-left:100%}}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:var(--sidebar);flex-shrink:0;
+  background:var(--navy2);
+  display:flex;flex-direction:column;
+  min-height:100vh;position:fixed;left:0;top:0;bottom:0;
+  z-index:100;border-right:1px solid rgba(255,255,255,0.07);
+}
+.sb-brand{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,0.07);}
+.sb-logo{display:flex;align-items:center;gap:9px;}
+.sb-logo-icon{width:30px;height:30px;background:var(--teal);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:var(--white);flex-shrink:0;}
+.sb-logo-text{font-size:14px;font-weight:700;color:var(--white);}
+.sb-logo-text span{color:var(--teal);}
+.sb-tagline{font-size:9px;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:.07em;margin-top:3px;}
+.sb-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:2px;}
+.sb-section{font-size:9px;font-weight:700;color:rgba(255,255,255,0.3);text-transform:uppercase;letter-spacing:.08em;padding:10px 8px 4px;}
+.sb-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:8px;
+  color:rgba(255,255,255,0.55);font-size:12px;font-weight:500;
+  cursor:pointer;transition:all 0.15s;border:none;background:transparent;
+  width:100%;text-align:left;font-family:inherit;
+}
+.sb-item:hover{background:rgba(255,255,255,0.06);color:var(--white);}
+.sb-item.active{background:rgba(0,181,173,0.15);color:var(--teal);font-weight:600;}
+.sb-item.active .sb-icon{color:var(--teal);}
+.sb-icon{font-size:15px;flex-shrink:0;}
+.sb-bottom{padding:12px 8px;border-top:1px solid rgba(255,255,255,0.07);}
+.sb-meta{font-size:9px;color:rgba(255,255,255,0.25);padding:4px 10px;margin-bottom:6px;line-height:1.5;}
+.sb-logout{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;color:rgba(255,255,255,0.4);font-size:11px;cursor:pointer;transition:all 0.15s;border:none;background:transparent;width:100%;font-family:inherit;}
+.sb-logout:hover{background:rgba(243,104,141,0.1);color:var(--pink);}
+
+/* ── MAIN CONTENT ── */
+.main-wrap{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+
+/* ── HEADER ── */
+.hdr{background:var(--navy);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:48px;border-bottom:2px solid var(--teal);}
+.hdr-title{font-size:13px;font-weight:700;color:var(--white);letter-spacing:-0.1px;}
+.hdr-title span{color:var(--teal);}
+.hdr-right{display:flex;align-items:center;gap:12px;}
+.hdr-meta{font-size:10px;color:rgba(255,255,255,0.4);text-align:right;line-height:1.6;}
+.refresh-btn{display:flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.2);background:transparent;color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;}
+.refresh-btn:hover{background:var(--teal);border-color:var(--teal);color:var(--white);}
+.refresh-btn.loading{opacity:0.6;cursor:not-allowed;}
+.refresh-icon{font-size:13px;}
+.refresh-btn.loading .refresh-icon{animation:spin 1s linear infinite;}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* ── CONTROLS ── */
+.ctrl-bar{background:var(--white);border-bottom:1px solid var(--border);padding:7px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.ctrl-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;}
+.ctrl-group{display:flex;align-items:center;gap:5px;}
+.pill{padding:4px 11px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:11px;font-weight:500;cursor:pointer;transition:all 0.14s;white-space:nowrap;font-family:inherit;}
+.pill:hover{border-color:var(--navy);color:var(--navy);}
+.pill.active{background:var(--navy);border-color:var(--navy);color:var(--white);font-weight:600;}
+.pill.active.seg-t{background:var(--teal);border-color:var(--teal);}
+.ctrl-sep{width:1px;height:18px;background:var(--border);flex-shrink:0;}
+.date-inp{padding:4px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:11px;color:var(--black);background:var(--white);font-family:inherit;}
+.date-inp:focus{outline:none;border-color:var(--teal);}
+.apply-btn{padding:4px 12px;border-radius:20px;border:none;background:var(--teal);color:var(--white);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;}
+.clear-btn{padding:4px 10px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;font-family:inherit;}
+.clear-btn:hover{border-color:var(--pink);color:var(--pink);}
+.date-badge{display:none;font-size:10px;background:#e0f7f6;color:var(--teal2);font-weight:600;padding:2px 9px;border-radius:20px;border:1px solid #b3e5e3;}
+
+/* ── STRIP ── */
+.strip{display:grid;grid-template-columns:repeat(7,1fr);background:var(--navy2);border-bottom:3px solid var(--pink);}
+.si{padding:11px 14px;border-right:1px solid rgba(255,255,255,0.07);position:relative;}
+.si:last-child{border-right:none;}
+.si-lbl{font-size:9px;font-weight:700;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px;line-height:1.3;}
+.si-val{font-size:20px;font-weight:700;color:var(--white);line-height:1;font-variant-numeric:tabular-nums;}
+.si-sub{font-size:10px;color:rgba(255,255,255,0.38);margin-top:3px;}
+.si .bar{position:absolute;bottom:0;left:0;right:0;height:3px;}
+.si.ct .bar{background:var(--teal);} .si.ct .si-val{color:#5eead4;}
+.si.cp .bar{background:var(--pink);} .si.cp .si-val{color:#fda4b7;}
+.si.cg .bar{background:#34d399;}    .si.cg .si-val{color:#6ee7b7;}
+
+/* ── PAGE CONTENT ── */
+.page{display:none;flex-direction:column;flex:1;}
+.page.active{display:flex;}
+.page-body{padding:18px 24px;display:flex;flex-direction:column;gap:18px;flex:1;}
+
+/* ── ENROLMENT STRIP ── */
+.enrol-strip{display:grid;grid-template-columns:repeat(3,1fr);background:var(--navy2);border-bottom:3px solid var(--teal);}
+
+/* ── CHART GRID ── */
+.grid-3{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:16px;}
+.grid-3b{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:16px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid-full{display:grid;grid-template-columns:1fr;gap:16px;}
+.card{background:var(--white);border-radius:var(--r);box-shadow:var(--sh);padding:16px;display:flex;flex-direction:column;}
+.card-ttl{font-size:11px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px;}
+.card-sub{font-size:10px;color:var(--muted);margin-bottom:12px;}
+.cw{position:relative;}
+.leg{display:flex;flex-direction:column;gap:5px;margin-top:10px;}
+.leg-row{display:flex;align-items:center;gap:7px;font-size:10.5px;color:var(--muted);}
+.leg-sq{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+.leg-pct{margin-left:auto;font-weight:700;color:var(--navy);font-size:11px;}
+
+/* ── TAT TABLE ── */
+.tat-table{width:100%;border-collapse:collapse;font-size:12px;}
+.tat-table th{background:var(--navy);color:var(--white);padding:9px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;}
+.tat-table td{padding:9px 12px;border-bottom:1px solid var(--border);}
+.tat-table tr:last-child td{border-bottom:none;}
+.tat-table tr:hover td{background:#f8f9fc;}
+.tat-good{color:var(--teal);font-weight:700;}
+.tat-warn{color:var(--pink);font-weight:700;}
+.tat-plan{font-weight:700;color:var(--navy);}
+.tat-exp{color:var(--pink);font-weight:700;}
+
+/* ── RATE CARDS ── */
+.rate-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px;}
+.rate-card{background:var(--offW);border-radius:8px;padding:12px 14px;border:1.5px solid var(--border);}
+.rate-card-plan{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.rate-card-pct{font-size:28px;font-weight:700;margin-bottom:2px;}
+.rate-card-sub{font-size:10px;color:var(--muted);}
+.rate-green{color:var(--teal);}
+.rate-orange{color:#f59e0b;}
+.rate-red{color:var(--pink);}
+
+/* ── INSIGHT BOX ── */
+.insight-card{background:var(--navy);border-radius:var(--r);padding:16px;}
+.insight-lbl{color:rgba(255,255,255,0.45);font-size:9px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px;}
+.insight-val{font-size:20px;font-weight:700;}
+.insight-sub{font-size:10px;color:rgba(255,255,255,0.35);margin-top:2px;}
+.insight-divider{height:1px;background:rgba(255,255,255,0.08);margin:10px 0;}
+
+/* ── FOOTER ── */
+.footer{background:var(--navy);color:rgba(255,255,255,0.35);font-size:10px;text-align:center;padding:10px 24px;letter-spacing:0.04em;}
+
+/* ── DATA TABLES ── */
+.data-table{width:100%;border-collapse:collapse;font-size:11.5px;}
+.data-table th{background:var(--navy);color:var(--white);padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
+.data-table th.num{text-align:right;}
+.data-table td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--black);}
+.data-table td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--navy);}
+.data-table td.pct{text-align:right;color:var(--muted);font-size:10.5px;}
+.data-table td.plan-33{color:var(--navy);font-weight:600;}
+.data-table td.plan-72{color:var(--teal);font-weight:600;}
+.data-table td.plan-exp{color:var(--pink);font-weight:600;}
+.data-table tr:hover td{background:#f8f9fc;}
+.data-table tr:last-child td{border-bottom:none;}
+.tbl-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--border);}
+.dealer-bar{height:6px;border-radius:3px;background:var(--teal);display:inline-block;min-width:2px;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:24px;right:24px;background:#1e2d3d;color:var(--white);padding:12px 18px;border-radius:10px;font-size:12px;border-left:3px solid var(--pink);box-shadow:0 4px 20px rgba(0,0,0,0.3);display:none;z-index:9000;max-width:320px;}
+
+@media(max-width:1200px){
+  .strip,.enrol-strip{grid-template-columns:repeat(3,1fr);}
+  .grid-3,.grid-3b{grid-template-columns:1fr 1fr;}
+  .grid-2{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">⚡</div>
+    <div class="login-title">LEAD<span>.x</span></div>
+    <div class="login-sub">Sales Conversion Engine · Hopcharge</div>
+    <label class="login-label">Username</label>
+    <input class="login-input" id="loginUser" type="text" placeholder="Enter username" autocomplete="username">
+    <label class="login-label">Password</label>
+    <input class="login-input" id="loginPass" type="password" placeholder="Enter password" autocomplete="current-password">
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="loginError">Invalid username or password</div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="loadingOverlay">
+  <div class="loader-logo">⚡</div>
+  <div class="loader-title">LEAD<span>.x</span></div>
+  <div class="loader-sub">Loading latest data...</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+</div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-logo">
+      <div class="sb-logo-icon">⚡</div>
+      <div>
+        <div class="sb-logo-text">LEAD<span>.x</span></div>
+        <div class="sb-tagline">Hopcharge Analytics</div>
+      </div>
+    </div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-section">Dashboards</div>
+    <button class="sb-item active" onclick="showPage('pipeline')" id="nav-pipeline">
+      <span class="sb-icon">📊</span> Sales Pipeline
+    </button>
+    <button class="sb-item" onclick="showPage('enrolment')" id="nav-enrolment">
+      <span class="sb-icon">🚗</span> Tata Enrolment
+    </button>
+  </div>
+  <div class="sb-bottom">
+    <div class="sb-meta" id="sbMeta">—</div>
+    <button class="sb-logout" onclick="doLogout()">
+      <span>⎋</span> Sign Out
+    </button>
+  </div>
+</nav>
+
+<!-- MAIN WRAP -->
+<div class="main-wrap">
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="hdr-title" id="pageTitle">LEAD<span>.x</span> — Sales Pipeline</div>
+    <div class="hdr-right">
+      <div class="hdr-meta">Updated: <span id="lastUpdated">—</span></div>
+      <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
+        <span class="refresh-icon">↻</span> Refresh
+      </button>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- PAGE 1: SALES PIPELINE                                   -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="page active" id="page-pipeline">
+
+    <!-- Controls -->
+    <div class="ctrl-bar">
+      <span class="ctrl-label">Period</span>
+      <div class="ctrl-group" id="pg">
+        <button class="pill active" data-period="till_date">Till Date</button>
+        <button class="pill" data-period="last_month">Last Month</button>
+        <button class="pill" data-period="curr_month">Current Month</button>
+      </div>
+      <div class="ctrl-sep"></div>
+      <span class="ctrl-label">Segment</span>
+      <div class="ctrl-group" id="sg">
+        <button class="pill active" data-seg="all">Overall</button>
+        <button class="pill seg-t" data-seg="T">Tata.ev × Hopcharge</button>
+        <button class="pill" data-seg="N">Others</button>
+      </div>
+      <div class="ctrl-sep"></div>
+      <span class="ctrl-label">Date Range</span>
+      <input type="date" class="date-inp" id="dF">
+      <span style="font-size:11px;color:var(--muted)">to</span>
+      <input type="date" class="date-inp" id="dT">
+      <button class="apply-btn" onclick="applyDate()">Apply</button>
+      <button class="clear-btn" onclick="clearDate()">Clear</button>
+      <span class="date-badge" id="dBadge"></span>
+    </div>
+
+    <!-- Strip -->
+    <div class="strip">
+      <div class="si"><div class="si-lbl">Total Leads Received</div><div class="si-val" id="s0">—</div><div class="si-sub" id="s0s">—</div><div class="bar"></div></div>
+      <div class="si ct"><div class="si-lbl">AI Qualified</div><div class="si-val" id="s1">—</div><div class="si-sub" id="s1s">—</div><div class="bar"></div></div>
+      <div class="si ct"><div class="si-lbl">High Relevance</div><div class="si-val" id="s2">—</div><div class="si-sub" id="s2s">—</div><div class="bar"></div></div>
+      <div class="si ct"><div class="si-lbl">Human Qualified</div><div class="si-val" id="s3">—</div><div class="si-sub" id="s3s">—</div><div class="bar"></div></div>
+      <div class="si cp"><div class="si-lbl">Total P90</div><div class="si-val" id="s4">—</div><div class="si-sub" id="s4s">—</div><div class="bar"></div></div>
+      <div class="si cp"><div class="si-lbl">Total P50</div><div class="si-val" id="s5">—</div><div class="si-sub" id="s5s">—</div><div class="bar"></div></div>
+      <div class="si cg"><div class="si-lbl">Converted</div><div class="si-val" id="s6">—</div><div class="si-sub" id="s6s">—</div><div class="bar"></div></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="page-body">
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-ttl">EV Model Distribution</div>
+          <div class="card-sub">Tata models separate · all others as "Other"</div>
+          <div class="cw" style="height:210px;"><canvas id="evChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-ttl">Subscription Plan Interest</div>
+          <div class="card-sub">From AI conversation</div>
+          <div class="cw" style="height:160px;"><canvas id="planChart"></canvas></div>
+          <div class="leg" id="planLeg"></div>
+        </div>
+        <div class="card">
+          <div class="card-ttl">Home Charger Status</div>
+          <div class="card-sub">Customer charging setup</div>
+          <div class="cw" style="height:160px;"><canvas id="hcChart"></canvas></div>
+          <div class="leg" id="hcLeg"></div>
+        </div>
+      </div>
+      <div class="grid-3b">
+        <div class="card">
+          <div class="card-ttl">Annual KM Running</div>
+          <div class="card-sub">Distance driven per year</div>
+          <div class="cw" style="height:190px;"><canvas id="kmChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-ttl">EV Ownership Status</div>
+          <div class="card-sub">Current vehicle ownership</div>
+          <div class="cw" style="height:160px;"><canvas id="eoChart"></canvas></div>
+          <div class="leg" id="eoLeg"></div>
+        </div>
+        <div class="card" style="background:var(--navy);">
+          <div style="color:rgba(255,255,255,0.5);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:8px;">Quick Insights</div>
+          <div id="insightBox" style="color:var(--white);font-size:12px;line-height:1.7;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════ -->
+  <!-- PAGE 2: TATA ENROLMENT                                   -->
+  <!-- ════════════════════════════════════════════════════════ -->
+  <div class="page" id="page-enrolment">
+
+    <!-- Enrolment Strip -->
+    <div class="enrol-strip">
+      <div class="si ct">
+        <div class="si-lbl">Total Enrolment Requests</div>
+        <div class="si-val" id="e0">—</div>
+        <div class="si-sub">Success 3.3 · 7.2 · Experience</div>
+        <div class="bar"></div>
+      </div>
+      <div class="si cp">
+        <div class="si-lbl">Total Approved</div>
+        <div class="si-val" id="e1">—</div>
+        <div class="si-sub" id="e1s">—</div>
+        <div class="bar"></div>
+      </div>
+      <div class="si cg">
+        <div class="si-lbl">Total Active</div>
+        <div class="si-val" id="e2">—</div>
+        <div class="si-sub" id="e2s">—</div>
+        <div class="bar"></div>
+      </div>
+    </div>
+
+    <div class="page-body">
+
+      <!-- Row 1: Funnel bar + TAT table -->
+      <div class="grid-2">
+
+        <!-- Funnel Bar Chart -->
+        <div class="card">
+          <div class="card-ttl">Funnel: Request → Approval → Activation</div>
+          <div class="card-sub">By plan</div>
+          <div class="cw" style="height:240px;"><canvas id="funnelChart"></canvas></div>
+          <!-- Approval → Activation Rate Cards -->
+          <div style="margin-top:14px;">
+            <div style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Approval → Activation Rate</div>
+            <div class="rate-cards">
+              <div class="rate-card">
+                <div class="rate-card-plan">Success 3.3</div>
+                <div class="rate-card-pct rate-green" id="rate33">—</div>
+                <div class="rate-card-sub" id="rate33s">—</div>
+              </div>
+              <div class="rate-card">
+                <div class="rate-card-plan">Success 7.2</div>
+                <div class="rate-card-pct rate-orange" id="rate72">—</div>
+                <div class="rate-card-sub" id="rate72s">—</div>
+              </div>
+              <div class="rate-card">
+                <div class="rate-card-plan">Experience</div>
+                <div class="rate-card-pct rate-red" id="rateExp">—</div>
+                <div class="rate-card-sub" id="rateExps">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAT Table + Drop Chart -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card">
+            <div class="card-ttl">Stage-by-Stage TAT (mean)</div>
+            <div class="card-sub">Time taken at each step — calendar days</div>
+            <table class="tat-table">
+              <thead>
+                <tr>
+                  <th>Plan</th>
+                  <th>Req→Approval</th>
+                  <th>Approval→Active</th>
+                  <th>Total (Req→Active)</th>
+                </tr>
+              </thead>
+              <tbody id="tatBody">
+                <tr><td colspan="4" style="color:var(--muted);font-size:11px;padding:12px;">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card">
+            <div class="card-ttl">Experience Plan — Activation Drops With Delay</div>
+            <div class="card-sub">Activation rate by time from request to approval</div>
+            <div class="cw" style="height:180px;"><canvas id="dropChart"></canvas></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Row 2: EV Model x Plan + Dealership x Plan -->
+      <div class="grid-2" style="margin-top:0;">
+
+        <!-- EV Model x Plan -->
+        <div class="card">
+          <div class="card-ttl">EV Model × Plan Distribution</div>
+          <div class="card-sub">Count and % share by EV model and subscription plan</div>
+          <div class="tbl-wrap">
+            <table class="data-table" id="evPlanTable">
+              <thead>
+                <tr>
+                  <th>EV Model</th>
+                  <th class="num">Success 3.3</th>
+                  <th class="num">Success 7.2</th>
+                  <th class="num">Experience</th>
+                  <th class="num">Total</th>
+                  <th class="num">% Share</th>
+                </tr>
+              </thead>
+              <tbody id="evPlanBody">
+                <tr><td colspan="6" style="color:var(--muted);padding:12px;">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Dealership x Plan -->
+        <div class="card">
+          <div class="card-ttl">Dealership × Plan Distribution</div>
+          <div class="card-sub">Sorted by total contribution — descending</div>
+          <div class="tbl-wrap">
+            <table class="data-table" id="dealerPlanTable">
+              <thead>
+                <tr>
+                  <th>Dealership</th>
+                  <th class="num">Success 3.3</th>
+                  <th class="num">Success 7.2</th>
+                  <th class="num">Experience</th>
+                  <th class="num">Total</th>
+                  <th class="num">% Share</th>
+                </tr>
+              </thead>
+              <tbody id="dealerPlanBody">
+                <tr><td colspan="6" style="color:var(--muted);padding:12px;">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">LEAD.x · Hopcharge™ Digital Inside Sales · Confidential</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════
+const DATA_URL    = 'https://ranaarun901.github.io/leadx/data.json';
+const SESSION_KEY = 'leadx_session';
+const USERS = {
+  'arun':  'hopcharge@2026',
+  'ceo':   'leadx@ceo',
+  'sales': 'leadx@sales',
+  'admin': 'leadx@admin',
+};
+
+// ═══════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════
+function doLogin() {
+  const user = document.getElementById('loginUser').value.trim().toLowerCase();
+  const pass = document.getElementById('loginPass').value;
+  const err  = document.getElementById('loginError');
+  if (USERS[user] && USERS[user] === pass) {
+    sessionStorage.setItem(SESSION_KEY, user);
+    document.getElementById('loginScreen').style.display = 'none';
+    initDashboard();
+  } else {
+    err.style.display = 'block';
+    document.getElementById('loginPass').value = '';
+    setTimeout(() => err.style.display = 'none', 3000);
+  }
+}
+function doLogout() { sessionStorage.removeItem(SESSION_KEY); location.reload(); }
+document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+document.getElementById('loginUser').addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('loginPass').focus(); });
+if (sessionStorage.getItem(SESSION_KEY)) {
+  document.getElementById('loginScreen').style.display = 'none';
+  initDashboard();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PAGE NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+let activePage = 'pipeline';
+function showPage(page) {
+  activePage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.getElementById('nav-' + page).classList.add('active');
+  const titles = {
+    pipeline:   'LEAD.x — Sales Pipeline',
+    enrolment:  'LEAD.x — Tata Enrolment',
+  };
+  document.getElementById('pageTitle').innerHTML = titles[page]
+    .replace('LEAD.x', 'LEAD<span style="color:var(--teal)">.x</span>');
+  if (page === 'enrolment' && GDATA) renderEnrolment();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════════
+let GDATA = null;
+let activePeriod = 'till_date', activeSeg = 'all';
+let dateFrom = null, dateTo = null, dateActive = false;
+
+const FALLBACK_DATA = {"generated_at":"2026-06-18T14:22:37.398Z","total_records":23709,"periods":{"till_date":{"all":{"total":20612,"qual":8707,"hrs":5906,"hq":1546,"p90":5,"p50":128,"cv":30,"ev":{"Unknown":2805,"Tata Tiago.ev":444,"Tata Curvv.ev":333,"Tata Punch.ev":628,"Tata Nexon.ev":1123,"Other":2380,"Tata Others":407,"Tata Harrier.ev":587},"pl":{"Other Plans":4280,"Unknown":2928,"Success 3.3":502,"Success 7.2":524,"Experience":473},"hc":{"Unknown":3459,"Has Charger":2668,"No Charger":2488,"Plans to Install":92},"km":{"Unknown":4674,"20to30k":845,"30to50k":615,"5to10k":590,"upto5k":355,"15to20k":737,"10to15k":710,"above50k":181},"eo":{"Unknown":5255,"No Car":2536,"EV Owner":906,"ICE Owner":10}},"T":{"total":8289,"qual":3821,"hrs":2646,"hq":922,"p90":3,"p50":96,"cv":12,"ev":{"Tata Tiago.ev":146,"Tata Others":315,"Other":342,"Tata Nexon.ev":393,"Tata Punch.ev":292,"Unknown":1848,"Tata Curvv.ev":166,"Tata Harrier.ev":319},"pl":{"Other Plans":1594,"Unknown":737,"Success 3.3":497,"Success 7.2":521,"Experience":472},"hc":{"Unknown":1949,"No Charger":1086,"Has Charger":700,"Plans to Install":86},"km":{"20to30k":153,"15to20k":144,"10to15k":152,"upto5k":64,"30to50k":109,"Unknown":3077,"above50k":26,"5to10k":96},"eo":{"Unknown":1854,"EV Owner":561,"No Car":1399,"ICE Owner":7}},"N":{"total":12323,"qual":4886,"hrs":3260,"hq":624,"p90":2,"p50":32,"cv":18,"ev":{"Unknown":957,"Tata Tiago.ev":298,"Tata Curvv.ev":167,"Tata Punch.ev":336,"Tata Nexon.ev":730,"Other":2038,"Tata Others":92,"Tata Harrier.ev":268},"pl":{"Other Plans":2686,"Unknown":2191,"Success 7.2":3,"Success 3.3":5,"Experience":1},"hc":{"Unknown":1510,"Has Charger":1968,"No Charger":1402,"Plans to Install":6},"km":{"Unknown":1597,"20to30k":692,"30to50k":506,"5to10k":494,"upto5k":291,"15to20k":593,"10to15k":558,"above50k":155},"eo":{"Unknown":3401,"No Car":1137,"EV Owner":345,"ICE Owner":3}}},"last_month":{"all":{"total":3576,"qual":1500,"hrs":1163,"hq":539,"p90":0,"p50":13,"cv":11,"ev":{"Unknown":402,"Tata Harrier.ev":140,"Other":371,"Tata Others":110,"Tata Nexon.ev":187,"Tata Curvv.ev":49,"Tata Punch.ev":166,"Tata Tiago.ev":75},"pl":{"Other Plans":573,"Unknown":477,"Success 3.3":140,"Success 7.2":160,"Experience":150},"hc":{"Unknown":493,"No Charger":539,"Has Charger":433,"Plans to Install":35},"km":{"Unknown":843,"20to30k":135,"5to10k":90,"30to50k":111,"15to20k":125,"10to15k":125,"upto5k":43,"above50k":28},"eo":{"Unknown":258,"No Car":1026,"EV Owner":213,"ICE Owner":3}},"T":{"total":2156,"qual":892,"hrs":681,"hq":340,"p90":0,"p50":12,"cv":5,"ev":{"Unknown":317,"Tata Harrier.ev":91,"Other":103,"Tata Others":102,"Tata Nexon.ev":107,"Tata Curvv.ev":28,"Tata Tiago.ev":37,"Tata Punch.ev":107},"pl":{"Other Plans":213,"Unknown":230,"Success 3.3":139,"Success 7.2":160,"Experience":150},"hc":{"Unknown":349,"No Charger":318,"Has Charger":191,"Plans to Install":34},"km":{"Unknown":689,"20to30k":39,"5to10k":21,"30to50k":38,"10to15k":44,"upto5k":12,"15to20k":41,"above50k":8},"eo":{"Unknown":166,"No Car":589,"EV Owner":135,"ICE Owner":2}},"N":{"total":1420,"qual":608,"hrs":482,"hq":199,"p90":0,"p50":1,"cv":6,"ev":{"Other":268,"Tata Nexon.ev":80,"Tata Harrier.ev":49,"Tata Punch.ev":59,"Unknown":85,"Tata Tiago.ev":38,"Tata Curvv.ev":21,"Tata Others":8},"pl":{"Other Plans":360,"Unknown":247,"Success 3.3":1},"hc":{"Has Charger":242,"No Charger":221,"Unknown":144,"Plans to Install":1},"km":{"15to20k":84,"upto5k":31,"30to50k":73,"10to15k":81,"20to30k":96,"Unknown":154,"5to10k":69,"above50k":20},"eo":{"EV Owner":78,"Unknown":92,"No Car":437,"ICE Owner":1}}},"curr_month":{"all":{"total":1925,"qual":667,"hrs":469,"hq":254,"p90":4,"p50":15,"cv":2,"ev":{"Tata Harrier.ev":60,"Other":136,"Tata Others":52,"Unknown":170,"Tata Curvv.ev":36,"Tata Punch.ev":81,"Tata Tiago.ev":38,"Tata Nexon.ev":94},"pl":{"Other Plans":246,"Success 7.2":55,"Unknown":277,"Success 3.3":51,"Experience":38},"hc":{"No Charger":228,"Has Charger":183,"Unknown":250,"Plans to Install":6},"km":{"15to20k":42,"30to50k":51,"Unknown":358,"10to15k":66,"5to10k":37,"20to30k":63,"upto5k":30,"above50k":20},"eo":{"No Car":491,"EV Owner":112,"Unknown":63,"ICE Owner":1}},"T":{"total":563,"qual":285,"hrs":220,"hq":125,"p90":3,"p50":10,"cv":0,"ev":{"Tata Harrier.ev":39,"Tata Others":23,"Unknown":88,"Tata Curvv.ev":23,"Tata Punch.ev":34,"Other":20,"Tata Tiago.ev":16,"Tata Nexon.ev":42},"pl":{"Other Plans":68,"Success 7.2":55,"Unknown":73,"Success 3.3":51,"Experience":38},"hc":{"No Charger":107,"Unknown":107,"Has Charger":66,"Plans to Install":5},"km":{"15to20k":14,"Unknown":205,"20to30k":20,"5to10k":7,"30to50k":10,"10to15k":20,"above50k":4,"upto5k":5},"eo":{"No Car":204,"EV Owner":59,"Unknown":22}},"N":{"total":1362,"qual":382,"hrs":249,"hq":129,"p90":1,"p50":5,"cv":2,"ev":{"Other":116,"Unknown":82,"Tata Punch.ev":47,"Tata Tiago.ev":22,"Tata Nexon.ev":52,"Tata Curvv.ev":13,"Tata Harrier.ev":21,"Tata Others":29},"pl":{"Other Plans":178,"Unknown":204},"hc":{"Has Charger":117,"No Charger":121,"Unknown":143,"Plans to Install":1},"km":{"30to50k":41,"15to20k":28,"Unknown":153,"10to15k":46,"5to10k":30,"20to30k":43,"upto5k":25,"above50k":16},"eo":{"No Car":287,"EV Owner":53,"Unknown":41,"ICE Owner":1}}}}};
+
+async function initDashboard() {
+  GDATA = FALLBACK_DATA;
+  hideLoading();
+  render();
+  fetchData(true);
+}
+
+async function fetchData(silent) {
+  if (!silent) showLoading(true);
+  try {
+    const resp = await fetch(DATA_URL + '?t=' + Date.now());
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    GDATA = await resp.json();
+    if (!silent) hideLoading();
+    render();
+    if (activePage === 'enrolment') renderEnrolment();
+    if (silent) showToast('Data refreshed ✓', true);
+  } catch(e) {
+    if (!silent) { hideLoading(); showToast('Using cached data. Live fetch failed: ' + e.message); }
+  }
+}
+
+async function refreshData() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('loading'); btn.disabled = true;
+  try {
+    const resp = await fetch(DATA_URL + '?t=' + Date.now());
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    GDATA = await resp.json();
+    render();
+    if (activePage === 'enrolment') renderEnrolment();
+    showToast('Refreshed ✓', true);
+  } catch(e) { showToast('Refresh failed: ' + e.message); }
+  finally { btn.classList.remove('loading'); btn.disabled = false; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PIPELINE RENDER
+// ═══════════════════════════════════════════════════════════════
+function getMetrics(pKey, seg) {
+  if (!GDATA?.periods) return null;
+  const p = GDATA.periods[pKey] || GDATA.periods['till_date'];
+  if (!p) return null;
+  if (seg === 'T') return p['T'] ?? null;
+  if (seg === 'N') return p['N'] ?? null;
+  return p['all'] ?? null;
+}
+
+function render() {
+  if (!GDATA) return;
+  const gen = GDATA.generated_at
+    ? new Date(GDATA.generated_at).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})
+    : '—';
+  sv('lastUpdated', gen);
+  document.getElementById('sbMeta').innerHTML =
+    'Updated: ' + gen + '<br>' + fN(GDATA.total_records||0) + ' records';
+
+  const pKey = dateActive ? 'till_date' : activePeriod;
+  const d    = getMetrics(pKey, activeSeg);
+  if (!d) { showToast('No data for segment "' + activeSeg + '" — rebuild in Apps Script'); return; }
+
+  sv('s0',fN(d.total));   sv('s0s','All Joule conversations');
+  sv('s1',fN(d.qual));    sv('s1s',pct(d.qual,d.total)+' qualification rate');
+  sv('s2',fN(d.hrs));     sv('s2s',pct(d.hrs,d.qual)+' of AI qualified');
+  sv('s3',fN(d.hq));      sv('s3s',pct(d.hq,d.qual)+' of AI qualified');
+  sv('s4',fN(d.p90));     sv('s4s',pct(d.p90,d.hq)+' of Human Qualified');
+  sv('s5',fN(d.p50));     sv('s5s',pct(d.p50,d.hq)+' of Human Qualified');
+  sv('s6',fN(d.cv));      sv('s6s',pct(d.cv,d.hq)+' of Human Qualified');
+
+  buildEVChart(d.ev||{});
+  buildDonut('planChart','planLeg',
+    ['Success 7.2','Success 3.3','Experience','General Tata.ev','Other Plans'],
+    [d.pl?.['Success 7.2']||0,d.pl?.['Success 3.3']||0,d.pl?.['Experience']||0,d.pl?.['General Tata.ev']||0,d.pl?.['Other Plans']||0],
+    [NAVY,TEAL,PINK,'#f59e0b','#94a3b8']);
+  buildDonut('hcChart','hcLeg',
+    ['Has Charger','No Charger','Plans to Install'],
+    [d.hc?.['Has Charger']||0,d.hc?.['No Charger']||0,d.hc?.['Plans to Install']||0],
+    [TEAL,PINK,'#fbbf24']);
+  buildKMChart(d.km||{});
+  buildDonut('eoChart','eoLeg',
+    ['EV Owner','ICE Owner','No Car'],
+    [d.eo?.['EV Owner']||0,d.eo?.['ICE Owner']||0,d.eo?.['No Car']||0],
+    [NAVY,TEAL,PINK]);
+  buildInsights(d);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENROLMENT RENDER
+// ═══════════════════════════════════════════════════════════════
+function renderEnrolment() {
+  if (!GDATA?.enrolment) {
+    // No enrolment data yet — show placeholder
+    sv('e0','—'); sv('e1','—'); sv('e1s','Run Apps Script to load');
+    sv('e2','—'); sv('e2s','');
+    return;
+  }
+  const E = GDATA.enrolment;
+  const m = E.metrics.total;
+  const bp = E.metrics.byPlan;
+
+  // Strip
+  sv('e0', fN(m.requested));
+  sv('e1', fN(m.approved));
+  sv('e1s', pct(m.approved, m.requested) + ' of requests');
+  sv('e2', fN(m.active));
+  sv('e2s', pct(m.active, m.approved) + ' of approved');
+
+  // Funnel bar chart
+  buildFunnelChart(bp);
+
+  // Rate cards
+  const r33  = bp['Success 3.3']  || {approved:0,active:0};
+  const r72  = bp['Success 7.2']  || {approved:0,active:0};
+  const rExp = bp['Experience']   || {approved:0,active:0};
+  sv('rate33',  pct(r33.active,  r33.approved));  sv('rate33s',  r33.active  + ' of ' + r33.approved);
+  sv('rate72',  pct(r72.active,  r72.approved));  sv('rate72s',  r72.active  + ' of ' + r72.approved);
+  sv('rateExp', pct(rExp.active, rExp.approved)); sv('rateExps', rExp.active + ' of ' + rExp.approved);
+
+  // TAT table
+  buildTATTable(bp);
+
+  // Drop chart
+  buildDropChart(E.dropChart);
+
+  // EV Model x Plan table
+  buildEvPlanTable(E.evPlanMap || {}, metrics.total.requested);
+
+  // Dealership x Plan table
+  buildDealerPlanTable(E.dealerPlanMap || {}, metrics.total.requested);
+}
+
+function buildEvPlanTable(evPlanMap, grandTotal) {
+  const PLANS = ['Success 3.3','Success 7.2','Experience'];
+  const tbody = document.getElementById('evPlanBody');
+  if (!evPlanMap || Object.keys(evPlanMap).length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--muted);padding:12px;">No data yet — run Apps Script rebuild</td></tr>';
+    return;
+  }
+
+  // Build rows with totals
+  const rows = Object.entries(evPlanMap).map(([model, plans]) => {
+    const total = Object.values(plans).reduce((s,v)=>s+v,0);
+    return { model, plans, total };
+  }).sort((a,b) => b.total - a.total);
+
+  const overallTotal = rows.reduce((s,r)=>s+r.total,0);
+
+  tbody.innerHTML = rows.map(r => {
+    const pct = overallTotal > 0 ? (r.total/overallTotal*100).toFixed(1)+'%' : '—';
+    return `<tr>
+      <td style="font-weight:600;color:var(--navy)">${r.model||'Unknown'}</td>
+      <td class="num plan-33">${fN(r.plans['Success 3.3']||0)}</td>
+      <td class="num plan-72">${fN(r.plans['Success 7.2']||0)}</td>
+      <td class="num plan-exp">${fN(r.plans['Experience']||0)}</td>
+      <td class="num" style="font-weight:700">${fN(r.total)}</td>
+      <td class="pct">${pct}</td>
+    </tr>`;
+  }).join('');
+
+  // Add total row
+  const totals = PLANS.map(p => rows.reduce((s,r)=>s+(r.plans[p]||0),0));
+  tbody.innerHTML += `<tr style="background:#f4f6fb;font-weight:700;">
+    <td style="font-weight:700;color:var(--navy)">Total</td>
+    <td class="num plan-33">${fN(totals[0])}</td>
+    <td class="num plan-72">${fN(totals[1])}</td>
+    <td class="num plan-exp">${fN(totals[2])}</td>
+    <td class="num">${fN(overallTotal)}</td>
+    <td class="pct">100%</td>
+  </tr>`;
+}
+
+function buildDealerPlanTable(dealerPlanMap, grandTotal) {
+  const PLANS = ['Success 3.3','Success 7.2','Experience'];
+  const tbody = document.getElementById('dealerPlanBody');
+  if (!dealerPlanMap || Object.keys(dealerPlanMap).length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--muted);padding:12px;">No data yet — run Apps Script rebuild</td></tr>';
+    return;
+  }
+
+  const overallTotal = Object.values(dealerPlanMap).reduce((s,d)=>s+(d.total||0),0);
+
+  // Sort by total descending
+  const rows = Object.entries(dealerPlanMap)
+    .map(([dealer, data]) => ({ dealer, data, total: data.total||0 }))
+    .sort((a,b) => b.total - a.total);
+
+  tbody.innerHTML = rows.map((r,i) => {
+    const pct     = overallTotal > 0 ? (r.total/overallTotal*100).toFixed(1) : 0;
+    const barWidth = overallTotal > 0 ? Math.max(2, Math.round(r.total/overallTotal*120)) : 2;
+    return `<tr>
+      <td>
+        <div style="font-weight:600;color:var(--navy);margin-bottom:3px">${r.dealer||'Unknown'}</div>
+        <div><span class="dealer-bar" style="width:${barWidth}px"></span></div>
+      </td>
+      <td class="num plan-33">${fN(r.data['Success 3.3']||0)}</td>
+      <td class="num plan-72">${fN(r.data['Success 7.2']||0)}</td>
+      <td class="num plan-exp">${fN(r.data['Experience']||0)}</td>
+      <td class="num" style="font-weight:700">${fN(r.total)}</td>
+      <td class="pct">${pct}%</td>
+    </tr>`;
+  }).join('');
+
+  // Total row
+  const totals = PLANS.map(p => rows.reduce((s,r)=>s+(r.data[p]||0),0));
+  tbody.innerHTML += `<tr style="background:#f4f6fb;font-weight:700;">
+    <td style="font-weight:700;color:var(--navy)">Total</td>
+    <td class="num plan-33">${fN(totals[0])}</td>
+    <td class="num plan-72">${fN(totals[1])}</td>
+    <td class="num plan-exp">${fN(totals[2])}</td>
+    <td class="num">${fN(overallTotal)}</td>
+    <td class="pct">100%</td>
+  </tr>`;
+}
+
+function buildFunnelChart(bp) {
+  kill('funnel');
+  const plans  = ['Success 3.3','Success 7.2','Experience'];
+  const req    = plans.map(p => (bp[p]||{}).requested||0);
+  const app    = plans.map(p => (bp[p]||{}).approved||0);
+  const act    = plans.map(p => (bp[p]||{}).active||0);
+  const ctx    = document.getElementById('funnelChart').getContext('2d');
+  CH['funnel'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: plans,
+      datasets: [
+        { label:'Requested', data:req, backgroundColor:NAVY,       borderRadius:4 },
+        { label:'Approved',  data:app, backgroundColor:TEAL,       borderRadius:4 },
+        { label:'Active',    data:act, backgroundColor:'#f59e0b',  borderRadius:4 },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:12}},
+        tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+fN(c.raw)}}
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:11}}},
+        y:{grid:{color:'#f0f0f0'},ticks:{font:{size:10},callback:v=>fN(v)}}
+      },
+      layout:{padding:{top:20}},
+      animation:{onComplete:function(){
+        const c2=this.ctx;
+        this.data.datasets.forEach((ds,di)=>{
+          this.getDatasetMeta(di).data.forEach((bar,i)=>{
+            const v=ds.data[i]; if(!v) return;
+            c2.font='bold 10px Inter,sans-serif';
+            c2.fillStyle='#374151'; c2.textAlign='center'; c2.textBaseline='bottom';
+            c2.fillText(fN(v), bar.x, bar.y-3);
+          });
+        });
+      }}
+    }
+  });
+}
+
+function buildTATTable(bp) {
+  const plans = ['Success 3.3','Success 7.2','Experience'];
+  const tbody = document.getElementById('tatBody');
+  tbody.innerHTML = plans.map(p => {
+    const m = bp[p] || {};
+    const ra = m.avg_tat_req_app !== null && m.avg_tat_req_app !== undefined ? m.avg_tat_req_app + ' days' : '—';
+    const aa = m.avg_tat_app_act !== null && m.avg_tat_app_act !== undefined ? m.avg_tat_app_act + ' days' : '—';
+    const tt = m.avg_tat_total   !== null && m.avg_tat_total   !== undefined ? m.avg_tat_total   + ' days' : '—';
+    const isExp = p === 'Experience';
+    const planClass = isExp ? 'tat-exp' : 'tat-plan';
+    const aaClass   = isExp ? 'tat-warn' : 'tat-good';
+    const ttClass   = isExp ? 'tat-warn' : 'tat-good';
+    return `<tr>
+      <td class="${planClass}">${p}</td>
+      <td>${ra}</td>
+      <td class="${aaClass}">${aa}</td>
+      <td class="${ttClass}">${tt}</td>
+    </tr>`;
+  }).join('');
+}
+
+function buildDropChart(dropData) {
+  kill('drop');
+  if (!dropData) return;
+  const ctx = document.getElementById('dropChart').getContext('2d');
+  CH['drop'] = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: dropData.labels || ['≤24h','25–48h','>48h'],
+      datasets:[
+        { label:'Experience',  data: dropData.experience||[], backgroundColor:'#f59e0b', borderRadius:4 },
+        { label:'Success 3.3', data: dropData.success33||[],  backgroundColor:TEAL,      borderRadius:4 },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:10}},
+        tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+c.raw+'%'}}
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:10}}},
+        y:{max:110,grid:{color:'#f0f0f0'},ticks:{callback:v=>v+'%',font:{size:10}}}
+      },
+      layout:{padding:{top:22}},
+      animation:{onComplete:function(){
+        const c2=this.ctx;
+        this.data.datasets.forEach((ds,di)=>{
+          this.getDatasetMeta(di).data.forEach((bar,i)=>{
+            const v=ds.data[i]; if(!v) return;
+            c2.font='bold 10px Inter,sans-serif';
+            c2.fillStyle='#374151'; c2.textAlign='center'; c2.textBaseline='bottom';
+            c2.fillText(v+'%', bar.x, bar.y-3);
+          });
+        });
+      }}
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PIPELINE CHARTS (same as before)
+// ═══════════════════════════════════════════════════════════════
+const NAVY='#222e53',PINK='#f3688d',TEAL='#00b5ad',TEAL2='#00968f',PINK2='#e04d76';
+Chart.defaults.font.family="'Inter',system-ui,sans-serif";
+Chart.defaults.color='#6b7280';
+let CH={};
+function kill(id){if(CH[id]){CH[id].destroy();delete CH[id];}}
+
+function buildEVChart(ev) {
+  kill('ev');
+  const ORDER  = ['Tata Nexon.ev','Tata Punch.ev','Tata Harrier.ev','Tata Tiago.ev','Tata Curvv.ev','Tata Others','Other'];
+  const COLORS = [NAVY,TEAL,PINK,'#4f6fa5',TEAL2,PINK2,'#94a3b8'];
+  const pairs  = ORDER.map((l,i)=>({l,v:ev[l]||0,c:COLORS[i]})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v);
+  const total  = pairs.reduce((s,x)=>s+x.v,0);
+  const ctx    = document.getElementById('evChart').getContext('2d');
+  CH['ev'] = new Chart(ctx,{
+    type:'bar',
+    data:{labels:pairs.map(x=>x.l),datasets:[{data:pairs.map(x=>x.v),backgroundColor:pairs.map(x=>x.c),borderRadius:5,borderSkipped:false}]},
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fN(c.raw)+' ('+pct(c.raw,total)+')'}}},
+      scales:{x:{display:false,grid:{display:false}},y:{grid:{display:false},ticks:{font:{size:10.5,weight:'600'},color:NAVY}}},
+      layout:{padding:{right:70}},
+      animation:{onComplete:function(){
+        const c2=this.ctx;
+        this.data.datasets.forEach((ds,di)=>{
+          this.getDatasetMeta(di).data.forEach((bar,i)=>{
+            const v=ds.data[i];
+            c2.font='bold 10px Inter,sans-serif'; c2.fillStyle=NAVY; c2.textAlign='left'; c2.textBaseline='middle';
+            c2.fillText(fN(v)+' · '+pct(v,total), bar.x+6, bar.y);
+          });
+        });
+      }}
+    }
+  });
+}
+
+function buildDonut(canvasId,legId,labels,data,colors){
+  kill(canvasId);
+  const total=data.reduce((a,b)=>a+b,0);
+  const ctx=document.getElementById(canvasId).getContext('2d');
+  CH[canvasId]=new Chart(ctx,{
+    type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderWidth:2,borderColor:'#fff',hoverOffset:6}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'65%',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fN(c.raw)+' ('+pct(c.raw,total)+')'}}},
+      animation:{onComplete:function(){
+        const ch=this,c2=ch.ctx;
+        const cx=ch.chartArea.left+(ch.chartArea.right-ch.chartArea.left)/2;
+        const cy=ch.chartArea.top+(ch.chartArea.bottom-ch.chartArea.top)/2;
+        c2.save();
+        c2.font='bold 17px Inter,sans-serif'; c2.fillStyle=NAVY; c2.textAlign='center'; c2.textBaseline='middle';
+        c2.fillText(fN(total),cx,cy-6);
+        c2.font='10px Inter,sans-serif'; c2.fillStyle='#6b7280';
+        c2.fillText('leads',cx,cy+9); c2.restore();
+      }}
+    }
+  });
+  const leg=document.getElementById(legId);
+  if(leg) leg.innerHTML=labels.map((l,i)=>`<div class="leg-row"><div class="leg-sq" style="background:${colors[i]}"></div><span>${l}</span><span class="leg-pct">${pct(data[i],total)}</span></div>`).join('');
+}
+
+function buildKMChart(km){
+  kill('km');
+  const ORDER  = ['upto5k','5to10k','10to15k','15to20k','20to30k','30to50k','above50k'];
+  const LABELS = ['≤5k km','5–10k km','10–15k km','15–20k km','20–30k km','30–50k km','>50k km'];
+  const COLORS = [NAVY,TEAL,PINK,'#4f6fa5',TEAL2,PINK2,'#94a3b8'];
+  const data   = ORDER.map(k=>km[k]||0);
+  const total  = data.reduce((a,b)=>a+b,0);
+  const ctx    = document.getElementById('kmChart').getContext('2d');
+  CH['km']=new Chart(ctx,{
+    type:'bar',
+    data:{labels:LABELS,datasets:[{data,backgroundColor:COLORS,borderRadius:5,borderSkipped:false}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fN(c.raw)+' ('+pct(c.raw,total)+')'}}},
+      scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{display:false}},
+      layout:{padding:{top:22}},
+      animation:{onComplete:function(){
+        const c2=this.ctx;
+        this.data.datasets.forEach((ds,di)=>{
+          this.getDatasetMeta(di).data.forEach((bar,i)=>{
+            const v=ds.data[i]; if(!v) return;
+            c2.font='bold 9.5px Inter,sans-serif'; c2.fillStyle=NAVY; c2.textAlign='center'; c2.textBaseline='bottom';
+            c2.fillText(fN(v), bar.x, bar.y-3);
+          });
+        });
+      }}
+    }
+  });
+}
+
+function buildInsights(d){
+  const ev_pct  = d.qual>0?((d.eo?.['EV Owner']||0)/d.qual*100).toFixed(0):0;
+  const hc_pct  = d.qual>0?((d.hc?.['Has Charger']||0)/d.qual*100).toFixed(0):0;
+  const cv_rate = d.hq>0?(d.cv/d.hq*100).toFixed(1):0;
+  document.getElementById('insightBox').innerHTML=`
+    <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.1)">
+      <div style="color:rgba(255,255,255,0.45);font-size:9px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">EV Owners in Pipeline</div>
+      <div style="font-size:22px;font-weight:700;color:#5eead4">${ev_pct}%</div>
+    </div>
+    <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.1)">
+      <div style="color:rgba(255,255,255,0.45);font-size:9px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Have Home Charger</div>
+      <div style="font-size:22px;font-weight:700;color:#fda4b7">${hc_pct}%</div>
+    </div>
+    <div>
+      <div style="color:rgba(255,255,255,0.45);font-size:9px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px">Conversion Rate</div>
+      <div style="font-size:22px;font-weight:700;color:#6ee7b7">${cv_rate}%</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.35)">${fN(d.cv)} converted of ${fN(d.hq)} qualified</div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATE FILTER
+// ═══════════════════════════════════════════════════════════════
+function applyDate(){
+  const f=document.getElementById('dF').value,t=document.getElementById('dT').value;
+  if(!f||!t){showToast('Select both dates');return;}
+  dateFrom=f;dateTo=t;dateActive=true;
+  document.querySelectorAll('[data-period]').forEach(b=>b.classList.remove('active'));
+  const badge=document.getElementById('dBadge');badge.style.display='inline-block';badge.textContent=f+' → '+t;
+  render();
+}
+function clearDate(){
+  dateFrom=dateTo=null;dateActive=false;
+  document.getElementById('dF').value='';document.getElementById('dT').value='';
+  document.getElementById('dBadge').style.display='none';
+  document.querySelector('[data-period="till_date"]').classList.add('active');
+  activePeriod='till_date';render();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WIRING
+// ═══════════════════════════════════════════════════════════════
+document.querySelectorAll('[data-period]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    if(dateActive)return;
+    document.querySelectorAll('[data-period]').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');activePeriod=b.dataset.period;render();
+  });
+});
+document.querySelectorAll('[data-seg]').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('[data-seg]').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');activeSeg=b.dataset.seg;render();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════
+const fN=n=>Number(n||0).toLocaleString('en-IN');
+const pct=(n,d)=>d?(n/d*100).toFixed(1)+'%':'—';
+const sv=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+function showLoading(s){const el=document.getElementById('loadingOverlay');if(s)el.classList.remove('hidden');else el.classList.add('hidden');}
+function hideLoading(){showLoading(false);}
+function showToast(msg,success){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.display='block';
+  t.style.borderLeftColor=success?'#34d399':PINK;
+  clearTimeout(t._timer);t._timer=setTimeout(()=>t.style.display='none',4000);
+}
+</script>
+</body>
+</html>
