@@ -1476,18 +1476,16 @@ function getUsageMetrics(){
   const rows=U.records.filter(r=>!range||(r.dateStr&&r.dateStr>=range[0]&&r.dateStr<=range[1]));
   const n=rows.length;
   const kwh=rows.reduce((sum,r)=>sum+(Number(r.kwh)||0),0);
-  const planDist={},stateDist={},geoMap={};
+  const planDist={},stateDist={},geoPoints=[];
   const dowDist=Array(7).fill(0),hourlyDist=Array(24).fill(0);
   rows.forEach(r=>{
     planDist[r.plan]=(planDist[r.plan]||0)+1;
     stateDist[r.state||'Unknown']=(stateDist[r.state||'Unknown']||0)+1;
     if(r.dow>=0)dowDist[r.dow]++;
     if(r.hour>=0)hourlyDist[r.hour]++;
-    if(r.lat&&r.lng){
+    if(Number.isFinite(Number(r.lat))&&Number.isFinite(Number(r.lng))&&Number(r.lat)&&Number(r.lng)){
       const lat=Number(r.lat),lng=Number(r.lng);
-      const key=lat.toFixed(6)+','+lng.toFixed(6);
-      if(!geoMap[key])geoMap[key]={lat,lng,count:0,label:r.area||r.city||r.state||'Unknown'};
-      geoMap[key].count++;
+      geoPoints.push({lat,lng,label:r.area||r.city||r.state||'Unknown',sessionIndex:geoPoints.length});
     }
   });
   return {
@@ -1498,7 +1496,7 @@ function getUsageMetrics(){
     planDist,dowDist,hourlyDist,stateDist,
     dayCount:rows.filter(r=>r.isDay).length,
     nightCount:rows.filter(r=>!r.isDay).length,
-    geoPoints:Object.values(geoMap).sort((a,b)=>b.count-a.count)
+    geoPoints
   };
 }
 
@@ -1718,43 +1716,47 @@ function buildGeoMap(geoPoints){
     usageMarkerLayer.clearLayers();
   }
 
-  const validPoints=geoPoints.filter(p=>
+  const expandedPoints=[];
+  geoPoints.forEach(p=>{
+    const count=Math.max(1,Number(p.count)||1);
+    for(let i=0;i<count;i++)expandedPoints.push({...p,count:1,repeatIndex:i});
+  });
+  const validPoints=expandedPoints.filter(p=>
     Number.isFinite(Number(p.lat))&&Number.isFinite(Number(p.lng))&&
     Number(p.lat)>=-90&&Number(p.lat)<=90&&Number(p.lng)>=-180&&Number(p.lng)<=180
   );
   if(!validPoints.length) return;
 
-  validPoints.forEach(p=>{
-    const count=Number(p.count)||1;
+  const collisionCounts={};
+  validPoints.forEach((p,sessionNumber)=>{
     const lat=Number(p.lat);
     const lng=Number(p.lng);
     const label=p.label||`${Number(p.lat).toFixed(3)}, ${Number(p.lng).toFixed(3)}`;
+    // Treat coordinates within roughly 10 metres as a visual collision and
+    // spread every session in that bucket so no circle is hidden underneath.
+    const collisionKey=lat.toFixed(4)+','+lng.toFixed(4);
+    const i=collisionCounts[collisionKey]||0;
+    collisionCounts[collisionKey]=i+1;
+    const angle=i*2.399963229728653;
+    const distanceM=i===0?0:Math.min(500,24*Math.sqrt(i));
+    const northM=Math.sin(angle)*distanceM;
+    const eastM=Math.cos(angle)*distanceM;
+    const dotLat=lat+northM/111320;
+    const dotLng=lng+eastM/(111320*Math.max(.2,Math.cos(lat*Math.PI/180)));
 
-    // The source data is grouped by coordinate. Draw one dot per session and
-    // spread repeated sessions in a deterministic spiral so none sit directly
-    // on top of each other.
-    for(let i=0;i<count;i++){
-      const angle=i*2.399963229728653; // golden angle
-      const distanceM=i===0?0:Math.min(300,18*Math.sqrt(i));
-      const northM=Math.sin(angle)*distanceM;
-      const eastM=Math.cos(angle)*distanceM;
-      const dotLat=lat+northM/111320;
-      const dotLng=lng+eastM/(111320*Math.max(.2,Math.cos(lat*Math.PI/180)));
-
-      L.circleMarker([dotLat,dotLng],{
-        radius:5.5,
-        color:'#fff7ed',
-        weight:1.4,
-        fillColor:'#ff982f',
-        fillOpacity:.9,
-        className:'usage-session-marker',
-      })
-        .bindTooltip(
-          `<strong>${label}</strong><br>Session ${fN(i+1)} of ${fN(count)}`,
-          {direction:'top',offset:[0,-4]}
-        )
-        .addTo(usageMarkerLayer);
-    }
+    L.circleMarker([dotLat,dotLng],{
+      radius:5.5,
+      color:'#fff7ed',
+      weight:1.4,
+      fillColor:'#ff982f',
+      fillOpacity:.9,
+      className:'usage-session-marker',
+    })
+      .bindTooltip(
+        `<strong>${label}</strong><br>Session ${fN(sessionNumber+1)}`,
+        {direction:'top',offset:[0,-4]}
+      )
+      .addTo(usageMarkerLayer);
   });
 
   const bounds=L.latLngBounds(validPoints.map(p=>[Number(p.lat),Number(p.lng)]));
